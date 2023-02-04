@@ -2,24 +2,22 @@ from sys import stdout
 from time import sleep
 from steamy import SteamAPI, SteamMarketAPI
 import datetime
-import os
 
-CONDITIONS = ["Battle-Scarred", "Well-Worn", "Field-Tested", "Minimal Wear", "Factory New"]
 TIME_INTERVAL = 15
-
+API_KEY = ""
 
 class SteamPriceScraper:
     def __init__(self):
-        steam = SteamAPI("API_KEY")
+        steam = SteamAPI(API_KEY)
         self.steam_market = steam.market(730)
 
-    # Can be used to retrieve all csgo items from the steam api. Saves them into an csv file.
+    # Can be used to retrieve all csgo items from the steam api. Saves them into a csv file.
     def extract_all_itemnames(self):
         current_progress = 0
         try:
             with open("allitems.csv", "r", encoding="utf-8") as f:
-                read_items = f.readlines()
-                current_progress = len(read_items)
+                current_progress = len(f.readlines())
+                print(f"continuing progress for extraction of itemnames: {current_progress}")
         except FileNotFoundError:
             print("no progress made scraping all itemnames. Starting now!")
 
@@ -60,13 +58,14 @@ class SteamPriceScraper:
 
 if __name__ == '__main__':
     steam_price_scraper = SteamPriceScraper()
-    #steamPriceScraper.extract_all_itemnames()
+    steam_price_scraper.extract_all_itemnames()
     all_items = steam_price_scraper.load_all_itemnames()
 
     current_progress = 0
     try:
         with open("result.csv", "r", encoding="utf-8") as f:
             current_progress = len(f.readlines())
+            print(f"continuing progress for extraction of pricetrends at item: {current_progress}")
     except FileNotFoundError:
         print("no progress made calculating pricetrends. Starting now!")
 

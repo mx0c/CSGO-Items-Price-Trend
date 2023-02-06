@@ -2,6 +2,8 @@ from sys import stdout
 from time import sleep
 from steamy import SteamAPI, SteamMarketAPI
 import datetime
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 TIME_INTERVAL = 15
 API_KEY = ""
@@ -10,6 +12,7 @@ class SteamPriceScraper:
     def __init__(self):
         steam = SteamAPI(API_KEY)
         self.steam_market = steam.market(730)
+        self.model = LinearRegression()
 
     # Can be used to retrieve all csgo items from the steam api. Saves them into a csv file.
     def extract_all_itemnames(self):
@@ -44,16 +47,24 @@ class SteamPriceScraper:
                 items.append(line.rstrip())
         return items
 
-    # calculates the difference of the price between the current date and date(time_delta_in_days)
-    def calculate_price_diff(self, item_name, time_delta_in_days):
+    # calculates the difference of the price between the current date and date(time_delta_in_days) and also
+    # calculates a simple LinearRegression and returns the slope
+    def calculate_price_trend(self, item_name, time_delta_in_days):
         test = self.steam_market.get_item_price_history(item_name)
         filtered = {k: v for k, v in test.items() if (datetime.datetime.now() - datetime.timedelta(days=time_delta_in_days)) < k < datetime.datetime.now()}
+        
         prices = list(filtered.values())
+        dates = list(filtered.keys())
+
+        # convert datetime to timestamp
+        dates = [ x.timestamp() for x in dates ]
 
         diff = prices[len(prices)-1] - prices[0]
-        diff_in_perc = round(diff / prices[0] * 100, 2) 
+        diff_in_perc = round(diff / prices[0] * 100, 2)
 
-        return f"{diff_in_perc} %"
+        self.model.fit(dates, prices)
+
+        return f"{diff_in_perc} % : RegrCoeff {mode.coef_[0]}"
 
 
 if __name__ == '__main__':
@@ -71,9 +82,11 @@ if __name__ == '__main__':
 
     for idx in range(current_progress, len(all_items)):
         item = all_items[idx]
-        price_diff = steam_price_scraper.calculate_price_diff(item, 30)
+        price_diff = steam_price_scraper.calculate_price_trend(item, 30)
         with open("result.csv", "a", encoding="utf-8") as f:
             f.write(f"{item} : {price_diff}\n")
             stdout.write(f"\rProgress: {idx+1} of {len(all_items)}")
             stdout.flush()
         sleep(TIME_INTERVAL)
+
+

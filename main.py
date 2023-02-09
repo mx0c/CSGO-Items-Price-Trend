@@ -4,6 +4,8 @@ from steamy import SteamAPI, SteamMarketAPI
 import datetime
 import numpy as np
 from sklearn.linear_model import LinearRegression
+import numpy as np
+from collections import defaultdict
 
 TIME_INTERVAL = 15
 API_KEY = ""
@@ -50,26 +52,29 @@ class SteamPriceScraper:
     # calculates the difference of the price between the current date and date(time_delta_in_days) and also
     # calculates a simple LinearRegression and returns the slope
     def calculate_price_trend(self, item_name, time_delta_in_days):
-        test = self.steam_market.get_item_price_history(item_name)
-        filtered = {k: v for k, v in test.items() if (datetime.datetime.now() - datetime.timedelta(days=time_delta_in_days)) < k < datetime.datetime.now()}
-        
-        prices = list(filtered.values())
-        dates = list(filtered.keys())
+        try:
+            test = self.steam_market.get_item_price_history(item_name)
+            filtered = {k.toordinal(): v for k, v in test.items() if (datetime.datetime.now() - datetime.timedelta(days=time_delta_in_days)) < k < datetime.datetime.now()}
 
-        # convert datetime to timestamp
-        dates = [ x.timestamp() for x in dates ]
+            prices = list(filtered.values())
+            dates = list(filtered.keys())
 
-        diff = prices[len(prices)-1] - prices[0]
-        diff_in_perc = round(diff / prices[0] * 100, 2)
+            dates = np.array(dates).reshape(-1, 1)
 
-        self.model.fit(dates, prices)
+            diff = prices[len(prices)-1] - prices[0]
+            diff_in_perc = round(diff / prices[0] * 100, 2)
 
-        return f"{diff_in_perc} % : RegrCoeff {mode.coef_[0]}"
+            self.model.fit(dates, prices)
+
+            return f"{diff_in_perc} % : RegrCoeff {self.model.coef_[0]}"
+        except Exception as e :
+            print(e)
+            return "error"
 
 
 if __name__ == '__main__':
     steam_price_scraper = SteamPriceScraper()
-    steam_price_scraper.extract_all_itemnames()
+    #steam_price_scraper.extract_all_itemnames()
     all_items = steam_price_scraper.load_all_itemnames()
 
     current_progress = 0
